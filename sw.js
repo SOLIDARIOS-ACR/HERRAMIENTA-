@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v9";
+const CACHE_VERSION = "v10";
 const CACHE_NAME = `herramienta-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -110,6 +110,7 @@ self.addEventListener("fetch", event => {
 
       
  
+
 
 
 
