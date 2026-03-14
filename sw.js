@@ -3,19 +3,26 @@ const CACHE_VERSION = "v2";
 const STATIC_CACHE = `herramienta-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `herramienta-dynamic-${CACHE_VERSION}`;
 
-// Archivos estáticos siempre cacheados
+// Archivos estáticos - USAMOS RUTAS RELATIVAS './'
 const STATIC_ASSETS = [
-  "/HERRAMIENTA-/styles.css",
-  "/HERRAMIENTA-/app.js",
-  "/HERRAMIENTA-/manifest.json",
-  "/HERRAMIENTA-/icon-192.png",
-  "/HERRAMIENTA-/icon-512.png"
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./app.js",
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
-// Instalación del SW y cache de assets seguros
+// Instalación del SW
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then(cache => cache.addAll(STATIC_ASSETS))
+    caches.open(STATIC_CACHE)
+      .then(cache => {
+        console.log("Caching assets...");
+        return cache.addAll(STATIC_ASSETS);
+      })
+      .catch(err => console.error("Error en cache.addAll:", err))
   );
   self.skipWaiting();
 });
@@ -33,34 +40,49 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
+// Escuchar el mensaje 'skipWaiting' (Para que el botón 'Actualizar' del HTML funcione)
+self.addEventListener('message', (event) => {
+  if (event.data.action === 'skipWaiting') {
+    self.skipWaiting();
+  }
+});
+
 // Manejo de fetch
 self.addEventListener("fetch", event => {
+  // Solo manejar peticiones GET
   if (event.request.method !== "GET") return;
+
   const requestURL = new URL(event.request.url);
 
-  if (requestURL.pathname === "/HERRAMIENTA-/" || requestURL.pathname.endsWith("index.html")) {
+  // Estrategia para el HTML: Network First (Red primero, luego cache)
+  if (requestURL.pathname.endsWith("/") || requestURL.pathname.endsWith("index.html")) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          return caches.open(DYNAMIC_CACHE).then(cache => {
-            cache.put(event.request, response.clone());
-            return response;
+          const clonedResponse = response.clone();
+          caches.open(DYNAMIC_CACHE).then(cache => {
+            cache.put(event.request, clonedResponse);
           });
+          return response;
         })
-        .catch(() => {
-          return caches.open(DYNAMIC_CACHE).then(cache => cache.match(event.request));
-        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
 
-  if (requestURL.pathname.endsWith("manifest.json")) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
-
+  // Estrategia para el resto: Cache First (Cache primero, luego red)
   event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request).then(fetchRes => {
+        // Opcional: Guardar en dynamic cache lo que no estaba en static
+        return caches.open(DYNAMIC_CACHE).then(cache => {
+          cache.put(event.request, fetchRes.clone());
+          return fetchRes;
+        });
+      });
+    }).catch(() => {
+      // Si todo falla (offline y no en cache), podrías retornar una imagen o página offline aquí
+    })
   );
 });
 
