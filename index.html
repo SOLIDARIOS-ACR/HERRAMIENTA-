@@ -3482,10 +3482,7 @@ function resetearCuadro3() {
                 <div style="background: #f8f9fa; border: 2px solid #3498db; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
                     <h3 style="color: #2c3e50; margin: 0 0 15px 0;">RESUMEN</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div>
-                            <p><strong>Total de cuentas evaluadas:</strong> ${Object.keys(cuentasRegistradas).length}</p>
-                            <p><strong>Cuentas con monto:</strong> ${Object.values(cuentasRegistradas).filter(c => c.monto > 0).length}</p>
-                        </div>
+                        
                         <div>
                             <p><strong>Monto de deuda mensual total:</strong></p>
                             <p style="font-size: 1.3em; color: #27ae60; font-weight: bold;">${totalCapacidadPago.toLocaleString('es-MX', {style: 'currency', currency: 'MXN'})}</p>
